@@ -65,7 +65,7 @@ _state: dict[str, Any] = {
 # ─── Request/Response Models ──────────────────────────────────────────
 
 class GenerateDatasetRequest(BaseModel):
-    n_users: int = Field(default=50, ge=5, le=500)
+    n_users: int = Field(default=50, ge=5, le=10_000_000)
     seed: int = Field(default=42)
 
 
@@ -137,10 +137,13 @@ def generate_dataset(req: GenerateDatasetRequest) -> dict:
 
     stats = dataset_stats(users)
 
+    # For large datasets, only return a subset for display
+    display_users = users[:1000] if req.n_users > 1000 else users
+
     return {
         "users": [
             {"user_id": u.user_id, "balance": str(u.balance), "asset": u.asset}
-            for u in users
+            for u in display_users
         ],
         "stats": {
             "count": stats["count"],
@@ -179,15 +182,21 @@ def tokenize() -> TokenizeResponse:
 
     total_sum = sum(Decimal(r["value"]) for r in all_pll_records)
 
+    # For large datasets, limit the response payload
+    max_display = 1000
+    display_users = users[:max_display]
+    display_mapping = {u.user_id: user_token_mapping[u.user_id] for u in display_users}
+    display_records = all_pll_records[:max_display * 10]
+
     return TokenizeResponse(
         users=[
-            {"user_id": u.user_id, "balance": str(u.balance)} for u in users
+            {"user_id": u.user_id, "balance": str(u.balance)} for u in display_users
         ],
         pll_records=[
             {"uuid": r["uuid"], "token": r["token"], "value": r["value"]}
-            for r in all_pll_records
+            for r in display_records
         ],
-        user_token_mapping=user_token_mapping,
+        user_token_mapping=display_mapping,
         total_records=len(all_pll_records),
         total_sum=str(total_sum),
     )

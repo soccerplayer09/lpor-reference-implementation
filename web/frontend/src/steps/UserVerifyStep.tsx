@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { apiPost } from '../api'
 import { UserRecord, ProofData } from '../App'
+import { formatTime } from '../utils'
+import ProgressBar from '../components/ProgressBar'
 
 interface Props {
   users: UserRecord[]
@@ -22,13 +24,17 @@ export default function UserVerifyStep({ users, proofData: _proofData }: Props) 
   const [selectedUser, setSelectedUser] = useState<string>(users[0]?.user_id || '')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<VerifyResult | null>(null)
+  const [elapsed, setElapsed] = useState<number | null>(null)
 
   const verify = async () => {
     if (!selectedUser) return
     setLoading(true)
+    setElapsed(null)
+    const t0 = performance.now()
     try {
       const res = await apiPost<VerifyResult>('/verify/user', { user_id: selectedUser })
       setResult(res)
+      setElapsed(performance.now() - t0)
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Error')
     }
@@ -38,7 +44,7 @@ export default function UserVerifyStep({ users, proofData: _proofData }: Props) 
   return (
     <div>
       <div className="card">
-        <h2 style={{ marginBottom: 8 }}>Step 4: User Verification</h2>
+        <h3 style={{ marginBottom: 8 }}>User Verification</h3>
         <p style={{ color: 'var(--color-gray)', marginBottom: 16 }}>
           As a user, verify that your tokens are included in the Public Liability Ledger.
           No cryptographic operations needed — just search for your UUIDs.
@@ -49,10 +55,10 @@ export default function UserVerifyStep({ users, proofData: _proofData }: Props) 
             <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Select User</label>
             <select
               value={selectedUser}
-              onChange={e => { setSelectedUser(e.target.value); setResult(null) }}
+              onChange={e => { setSelectedUser(e.target.value); setResult(null); setElapsed(null) }}
               style={{ padding: '8px 12px', border: '1px solid var(--color-gray-light)', borderRadius: 6, minWidth: 200 }}
             >
-              {users.map(u => (
+              {users.slice(0, 1000).map(u => (
                 <option key={u.user_id} value={u.user_id}>
                   {u.user_id} ({u.balance} BTC)
                 </option>
@@ -63,6 +69,7 @@ export default function UserVerifyStep({ users, proofData: _proofData }: Props) 
             {loading ? 'Verifying...' : 'Verify My Inclusion'}
           </button>
         </div>
+        <ProgressBar loading={loading} label="Scanning PLL for your tokens..." />
       </div>
 
       {result && (
@@ -74,7 +81,14 @@ export default function UserVerifyStep({ users, proofData: _proofData }: Props) 
               <span style={{ fontSize: 36 }}>❌</span>
             )}
             <div>
-              <h3>{result.all_included ? 'All Tokens Found — Included!' : 'MISSING — Tokens Not Found!'}</h3>
+              <h3>
+                {result.all_included ? 'All Tokens Found — Included!' : 'MISSING — Tokens Not Found!'}
+                {elapsed !== null && (
+                  <span style={{ fontSize: 12, color: 'var(--color-gray)', fontWeight: 400, marginLeft: 8 }}>
+                    ({formatTime(elapsed)})
+                  </span>
+                )}
+              </h3>
               <p style={{ color: 'var(--color-gray)', fontSize: 13 }}>
                 {result.tokens_found}/{result.tokens_expected} tokens verified in PLL
               </p>

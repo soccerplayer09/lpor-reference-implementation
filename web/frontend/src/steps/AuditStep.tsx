@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { apiPost, apiGet } from '../api'
 import { ProofData } from '../App'
+import { formatTime } from '../utils'
+import ProgressBar from '../components/ProgressBar'
 
 interface Props {
   proofData: ProofData | null
@@ -33,6 +35,7 @@ export default function AuditStep({ proofData: _proofData }: Props) {
   const [auditResults, setAuditResults] = useState<AuditResults | null>(null)
   const [script, setScript] = useState<ScriptData | null>(null)
   const [loading, setLoading] = useState(false)
+  const [elapsed, setElapsed] = useState<number | null>(null)
   const [verifierName, setVerifierName] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -49,9 +52,12 @@ export default function AuditStep({ proofData: _proofData }: Props) {
 
   const runAuditVerification = async () => {
     setLoading(true)
+    setElapsed(null)
+    const t0 = performance.now()
     try {
       const res = await apiPost<AuditorResult>('/verify/auditor')
       setAuditorResult(res)
+      setElapsed(performance.now() - t0)
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Error')
     }
@@ -86,13 +92,13 @@ export default function AuditStep({ proofData: _proofData }: Props) {
   return (
     <div>
       <div className="card">
-        <h2 style={{ marginBottom: 8 }}>Step 5: Public Audit</h2>
+        <h3 style={{ marginBottom: 8 }}>Public Audit</h3>
         <p style={{ color: 'var(--color-gray)', marginBottom: 16 }}>
           Any independent party can download the PLL, recompute the Merkle root,
           and verify it matches the exchange's published commitment.
         </p>
 
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <button className="primary" onClick={runAuditVerification} disabled={loading}>
             {loading ? 'Verifying...' : 'Run Auditor Verification'}
           </button>
@@ -105,6 +111,7 @@ export default function AuditStep({ proofData: _proofData }: Props) {
             </button>
           </a>
         </div>
+        <ProgressBar loading={loading} label="Recomputing Merkle root from PLL..." />
       </div>
 
       {auditorResult && (
@@ -116,9 +123,16 @@ export default function AuditStep({ proofData: _proofData }: Props) {
               <span style={{ fontSize: 36 }}>❌</span>
             )}
             <div>
-              <h3>{auditorResult.verification_passed ? 'Verification PASSED' : 'Verification FAILED'}</h3>
+              <h3>
+                {auditorResult.verification_passed ? 'Verification PASSED' : 'Verification FAILED'}
+                {elapsed !== null && (
+                  <span style={{ fontSize: 12, color: 'var(--color-gray)', fontWeight: 400, marginLeft: 8 }}>
+                    ({formatTime(elapsed)})
+                  </span>
+                )}
+              </h3>
               <p style={{ color: 'var(--color-gray)', fontSize: 13 }}>
-                Merkle root recomputed in {auditorResult.verification_time_ms.toFixed(1)}ms
+                Merkle root recomputed — server-side: {formatTime(auditorResult.verification_time_ms)}
               </p>
             </div>
           </div>

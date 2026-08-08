@@ -220,3 +220,4 @@ __marimo__/
 # Web frontend
 web/frontend/node_modules/
 web/frontend/dist/
+.DS_Store

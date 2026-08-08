@@ -1,21 +1,27 @@
 import { useState } from 'react'
 import { apiPost } from '../api'
 import { TokenizeData, ProofData } from '../App'
+import { formatTime } from '../utils'
+import ProgressBar from '../components/ProgressBar'
 
 interface Props {
   tokenizeData: TokenizeData | null
-  onComplete: (data: ProofData) => void
+  onComplete: (data: ProofData, elapsed: number) => void
 }
 
 export default function ProofStep({ tokenizeData: _tokenizeData, onComplete }: Props) {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<ProofData | null>(null)
+  const [elapsed, setElapsed] = useState<number | null>(null)
 
   const generate = async () => {
     setLoading(true)
+    setElapsed(null)
+    const t0 = performance.now()
     try {
       const res = await apiPost<ProofData>('/generate-proof')
       setData(res)
+      setElapsed(performance.now() - t0)
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Error')
     }
@@ -25,7 +31,6 @@ export default function ProofStep({ tokenizeData: _tokenizeData, onComplete }: P
   return (
     <div>
       <div className="card">
-        <h2 style={{ marginBottom: 8 }}>Step 3: Generate Merkle Commitment</h2>
         <p style={{ color: 'var(--color-gray)', marginBottom: 16 }}>
           Build a Merkle tree over all PLL records. Each leaf is L<sub>i</sub> = SHA-256(UUID || token || value).
           The root R is the binding commitment published by the exchange.
@@ -33,12 +38,20 @@ export default function ProofStep({ tokenizeData: _tokenizeData, onComplete }: P
         <button className="primary" onClick={generate} disabled={loading}>
           {loading ? 'Building Tree...' : 'Generate Proof'}
         </button>
+        <ProgressBar loading={loading} label="Writing PLL + building Merkle tree..." />
       </div>
 
       {data && (
         <>
           <div className="card">
-            <h3 style={{ marginBottom: 12 }}>Proof Epoch Generated</h3>
+            <h3 style={{ marginBottom: 12 }}>
+              Proof Epoch Generated
+              {elapsed !== null && (
+                <span style={{ fontSize: 12, color: 'var(--color-gray)', fontWeight: 400, marginLeft: 8 }}>
+                  ({formatTime(elapsed)})
+                </span>
+              )}
+            </h3>
             <div className="stat-grid">
               <div className="stat-box">
                 <div className="value">{data.record_count.toLocaleString()}</div>
@@ -49,8 +62,8 @@ export default function ProofStep({ tokenizeData: _tokenizeData, onComplete }: P
                 <div className="label">Tree Depth</div>
               </div>
               <div className="stat-box">
-                <div className="value">{data.generation_time_ms.toFixed(1)}ms</div>
-                <div className="label">Generation Time</div>
+                <div className="value">{formatTime(data.generation_time_ms)}</div>
+                <div className="label">Server-side Time</div>
               </div>
               <div className="stat-box">
                 <div className="value">{data.total_sum}</div>
@@ -82,8 +95,8 @@ export default function ProofStep({ tokenizeData: _tokenizeData, onComplete }: P
             </div>
           </div>
 
-          <button className="primary" onClick={() => onComplete(data)} style={{ marginTop: 16 }}>
-            Continue to User Verification →
+          <button className="primary" onClick={() => onComplete(data, elapsed ?? 0)} style={{ marginTop: 16 }}>
+            Continue to Verification →
           </button>
         </>
       )}

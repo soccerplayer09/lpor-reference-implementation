@@ -1,22 +1,28 @@
 import { useState } from 'react'
 import { apiPost } from '../api'
 import { UserRecord, TokenizeData, PLLRecord } from '../App'
+import { formatTime } from '../utils'
+import ProgressBar from '../components/ProgressBar'
 
 interface Props {
   users: UserRecord[]
-  onComplete: (data: TokenizeData) => void
+  onComplete: (data: TokenizeData, elapsed: number) => void
 }
 
 export default function TokenizeStep({ users, onComplete }: Props) {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<TokenizeData | null>(null)
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
+  const [elapsed, setElapsed] = useState<number | null>(null)
 
   const tokenize = async () => {
     setLoading(true)
+    setElapsed(null)
+    const t0 = performance.now()
     try {
       const res = await apiPost<TokenizeData>('/tokenize')
       setData(res)
+      setElapsed(performance.now() - t0)
       if (res.users.length > 0) setSelectedUser(res.users[0].user_id)
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Error')
@@ -33,7 +39,6 @@ export default function TokenizeStep({ users, onComplete }: Props) {
   return (
     <div>
       <div className="card">
-        <h2 style={{ marginBottom: 8 }}>Step 2: Balance Tokenizer</h2>
         <p style={{ color: 'var(--color-gray)', marginBottom: 16 }}>
           Decompose each user's balance into standardized denomination tokens (TBTC-10, TBTC-1, TBTC-0.1, TBTC-0.01).
           Each token gets a unique UUID. The user column is stripped before publication.
@@ -41,11 +46,20 @@ export default function TokenizeStep({ users, onComplete }: Props) {
         <button className="primary" onClick={tokenize} disabled={loading}>
           {loading ? 'Tokenizing...' : 'Run Balance Tokenizer'}
         </button>
+        <ProgressBar loading={loading} label="Tokenizing user balances..." />
       </div>
 
       {data && (
         <>
           <div className="card">
+            <h3 style={{ marginBottom: 12 }}>
+              Tokenization Complete
+              {elapsed !== null && (
+                <span style={{ fontSize: 12, color: 'var(--color-gray)', fontWeight: 400, marginLeft: 8 }}>
+                  ({formatTime(elapsed)})
+                </span>
+              )}
+            </h3>
             <div className="stat-grid">
               <div className="stat-box">
                 <div className="value">{data.total_records.toLocaleString()}</div>
@@ -56,7 +70,7 @@ export default function TokenizeStep({ users, onComplete }: Props) {
                 <div className="label">Σ Total (BTC)</div>
               </div>
               <div className="stat-box">
-                <div className="value">{users.length}</div>
+                <div className="value">{users.length.toLocaleString()}</div>
                 <div className="label">Users</div>
               </div>
               <div className="stat-box">
@@ -79,7 +93,7 @@ export default function TokenizeStep({ users, onComplete }: Props) {
                     <tr><th>User</th><th>Balance</th><th>Tokens</th></tr>
                   </thead>
                   <tbody>
-                    {users.map(u => (
+                    {data.users.map(u => (
                       <tr
                         key={u.user_id}
                         className={selectedUser === u.user_id ? 'highlight-row' : ''}
@@ -128,7 +142,6 @@ export default function TokenizeStep({ users, onComplete }: Props) {
                         <td>{t.value}</td>
                       </tr>
                     ))}
-                    {/* Show some other records as "hidden" */}
                     {data.pll_records
                       .filter(r => !selectedTokens.find(t => t.uuid === r.uuid))
                       .slice(0, 10)
@@ -154,7 +167,7 @@ export default function TokenizeStep({ users, onComplete }: Props) {
             </div>
           </div>
 
-          <button className="primary" onClick={() => onComplete(data)} style={{ marginTop: 16 }}>
+          <button className="primary" onClick={() => onComplete(data, elapsed ?? 0)} style={{ marginTop: 16 }}>
             Continue to Proof Generation →
           </button>
         </>
