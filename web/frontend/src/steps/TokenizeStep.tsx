@@ -6,10 +6,11 @@ import ProgressBar from '../components/ProgressBar'
 
 interface Props {
   users: UserRecord[]
+  totalUserCount: number
   onComplete: (data: TokenizeData, elapsed: number) => void
 }
 
-export default function TokenizeStep({ users, onComplete }: Props) {
+export default function TokenizeStep({ users, totalUserCount, onComplete }: Props) {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<TokenizeData | null>(null)
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
@@ -70,11 +71,11 @@ export default function TokenizeStep({ users, onComplete }: Props) {
                 <div className="label">Σ Total (BTC)</div>
               </div>
               <div className="stat-box">
-                <div className="value">{users.length.toLocaleString()}</div>
+                <div className="value">{totalUserCount.toLocaleString()}</div>
                 <div className="label">Users</div>
               </div>
               <div className="stat-box">
-                <div className="value">{(data.total_records / users.length).toFixed(1)}</div>
+                <div className="value">{(data.total_records / totalUserCount).toFixed(1)}</div>
                 <div className="label">Avg Tokens/User</div>
               </div>
             </div>
