@@ -8,10 +8,8 @@ Provides endpoints for the step-by-step LPOR demonstration:
 5. Public Audit: download PLL, submit verification results
 """
 
-import json
 import time
 from datetime import date
-from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -22,8 +20,8 @@ from pydantic import BaseModel, Field
 
 from lpor.core.detectability import detection_probability, generate_table_iv
 from lpor.core.generator import dataset_stats, generate_users_list
-from lpor.core.ledger import PLLReader, PLLWriter
-from lpor.core.merkle import MerkleTree, hash_pll_record, verify_proof
+from lpor.core.ledger import PLLWriter
+from lpor.core.merkle import MerkleTree
 from lpor.core.tokenizer import tokenize_balance
 from lpor.models.schemas import UserBalance
 from lpor.verifier.auditor import verify_auditor
@@ -130,9 +128,12 @@ def generate_dataset(req: GenerateDatasetRequest) -> dict:
     """Step 1: Generate synthetic user dataset."""
     users = generate_users_list(req.n_users, seed=req.seed)
     _state["users"] = users
+    _state["generator_params"] = {"n_users": req.n_users, "seed": req.seed}
     _state["tokens_by_user"] = None
     _state["pll_path"] = None
     _state["merkle_root"] = None
+    _state["metadata"] = None
+    _state["tree"] = None
     _state["audit_submissions"] = []
 
     stats = dataset_stats(users)
@@ -165,40 +166,52 @@ def tokenize() -> TokenizeResponse:
     users: list[UserBalance] = _state["users"]
     proof_id = DEMO_PROOF_ID
 
-    # Tokenize all users, tracking mapping
-    user_token_mapping: dict[str, list[dict]] = {}
-    all_pll_records: list[dict] = []
+    # For large datasets, write PLL to disk during tokenization (streaming)
+    # and only keep a display subset in memory.
+    DEMO_DIR.mkdir(parents=True, exist_ok=True)
+    pll_path = DEMO_DIR / "pll.csv"
 
-    for user in users:
+    # Stream tokenization: write PLL to disk, keep only display subset in memory
+    max_display_users = min(len(users), 1000)
+    display_mapping: dict[str, list[dict]] = {}
+    display_records: list[dict] = []
+    total_records = 0
+
+    writer = PLLWriter(pll_path, proof_id=proof_id)
+    for idx, user in enumerate(users):
         tokens = tokenize_balance(user, proof_id)
         user_tokens = []
         for t in tokens:
-            record = {"uuid": t.uuid, "token": t.token, "value": str(t.value)}
-            user_tokens.append(record)
-            all_pll_records.append({**record, "user_id": user.user_id})
-        user_token_mapping[user.user_id] = user_tokens
+            record_dict = {"uuid": t.uuid, "token": t.token, "value": str(t.value)}
+            writer.write_token(t)
+            total_records += 1
 
-    _state["tokens_by_user"] = user_token_mapping
+            # Only keep display data for first N users
+            if idx < max_display_users:
+                user_tokens.append(record_dict)
+                if len(display_records) < max_display_users * 10:
+                    display_records.append(record_dict)
 
-    total_sum = sum(Decimal(r["value"]) for r in all_pll_records)
+        if idx < max_display_users:
+            display_mapping[user.user_id] = user_tokens
 
-    # For large datasets, limit the response payload
-    max_display = 1000
-    display_users = users[:max_display]
-    display_mapping = {u.user_id: user_token_mapping[u.user_id] for u in display_users}
-    display_records = all_pll_records[:max_display * 10]
+    metadata = writer.finalize()
+
+    # Store path for later steps — NOT the full token mapping
+    _state["pll_path"] = pll_path
+    _state["metadata"] = metadata
+    _state["tokens_by_user"] = None  # Don't hold in memory
+
+    display_users = users[:max_display_users]
 
     return TokenizeResponse(
         users=[
             {"user_id": u.user_id, "balance": str(u.balance)} for u in display_users
         ],
-        pll_records=[
-            {"uuid": r["uuid"], "token": r["token"], "value": r["value"]}
-            for r in display_records
-        ],
+        pll_records=display_records,
         user_token_mapping=display_mapping,
-        total_records=len(all_pll_records),
-        total_sum=str(total_sum),
+        total_records=total_records,
+        total_sum=str(metadata.total_sum),
     )
 
 
@@ -207,26 +220,15 @@ def generate_proof() -> GenerateProofResponse:
     """Step 3: Build Merkle tree and generate commitment."""
     if _state["users"] is None:
         raise HTTPException(400, "Generate dataset first")
-    if _state["tokens_by_user"] is None:
+    if _state["pll_path"] is None:
         raise HTTPException(400, "Run tokenization first (POST /api/tokenize)")
 
-    users: list[UserBalance] = _state["users"]
-    proof_id = DEMO_PROOF_ID
-
-    # Write PLL to disk
-    DEMO_DIR.mkdir(parents=True, exist_ok=True)
-    pll_path = DEMO_DIR / "pll.csv"
+    pll_path: Path = _state["pll_path"]
+    metadata = _state["metadata"]
 
     t_start = time.perf_counter()
 
-    writer = PLLWriter(pll_path, proof_id=proof_id)
-    for user in users:
-        tokens = tokenize_balance(user, proof_id)
-        for token in tokens:
-            writer.write_token(token)
-    metadata = writer.finalize()
-
-    # Build Merkle tree
+    # Build Merkle tree from existing PLL file (already written during tokenize)
     tree = MerkleTree()
     merkle_root = tree.build_from_pll(pll_path)
 
@@ -235,9 +237,7 @@ def generate_proof() -> GenerateProofResponse:
     # Save merkle root
     (DEMO_DIR / "merkle_root.txt").write_text(merkle_root)
 
-    _state["pll_path"] = pll_path
     _state["merkle_root"] = merkle_root
-    _state["metadata"] = metadata
     _state["tree"] = tree
 
     # Compute tree depth
