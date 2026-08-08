@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+title: "LPOR: A Layered Proof of Reserves Framework for Usable and Publicly Auditable Solvency Verification"
+message: "If you use this software, please cite the associated paper."
+type: software
+authors:
+  - name: "LPOR Research Team"
+    affiliation: "Georgia Institute of Technology — OMSCS"
+preferred-citation:
+  type: conference-paper
+  title: "LPOR: A Layered Proof of Reserves Framework for Usable and Publicly Auditable Solvency Verification"
+  authors:
+    - name: "LPOR Research Team"
+      affiliation: "Georgia Institute of Technology — OMSCS"
+  collection-title: "2026 IEEE International Conference on Blockchain and Cryptocurrency (ICBC)"
+  conference:
+    name: "IEEE ICBC 2026"
+    city: "Brisbane"
+    country: "AU"
+    date-start: "2026-06-01"
+  year: 2026
+  publisher:
+    name: "IEEE"
+repository-code: "https://github.com/donggookim/lpor-reference-implementation"
+license: Apache-2.0
+keywords:
+  - proof-of-reserves
+  - blockchain
+  - cryptocurrency
+  - merkle-tree
+  - solvency-verification
+  - usability
