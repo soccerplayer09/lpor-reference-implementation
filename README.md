@@ -4,9 +4,11 @@
 
 ## What is LPOR?
 
-**LPOR (Layered Proof of Reserves)** is a framework that makes cryptocurrency exchange solvency verification both cryptographically sound and practically usable by everyday users.
+**LPOR (Layered Proof of Reserves)** is a layered, usability-focused PoR framework that separates lightweight user-side checks from auditor-level cryptographic verification, enabling non-technical users to verify inclusion and publicly recompute total liabilities with minimal friction.
 
-The core insight: **a technically valid proof that nobody verifies provides weak practical transparency.** LPOR treats usability itself as a security parameter.
+Proof of Reserves (PoR) enables centralized crypto exchanges to demonstrate that on-chain reserves are sufficient to cover customer liabilities. However, existing approaches, including Merkle-tree-based proofs and zero-knowledge PoR systems, remain difficult for everyday users to verify in practice, resulting in limited participation and weakened transparency.
+
+LPOR introduces a layered verification approach: by lowering verification barriers, LPOR increases user participation and substantially improves the probability of detecting omitted liabilities. We evaluate its scalability and omission detectability at a multi-million-user scale.
 
 This repository is the reference implementation accompanying the research paper:
 
