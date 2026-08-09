@@ -126,6 +126,11 @@ def health() -> dict:
 @app.post("/api/dataset")
 def generate_dataset(req: GenerateDatasetRequest) -> dict:
     """Step 1: Generate synthetic user dataset."""
+    # Clean up previous demo data from disk
+    import shutil
+    if DEMO_DIR.exists():
+        shutil.rmtree(DEMO_DIR, ignore_errors=True)
+
     users = generate_users_list(req.n_users, seed=req.seed)
     _state["users"] = users
     _state["generator_params"] = {"n_users": req.n_users, "seed": req.seed}

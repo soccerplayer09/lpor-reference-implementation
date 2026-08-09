@@ -97,7 +97,7 @@ export default function ProofStep({ mode, tokenizeData: _tokenizeData, storedDat
           </div>
           <div style={{ fontSize: 28, color: 'var(--color-success)', fontWeight: 700 }}>≤</div>
           <div className="stat-box" style={{ border: '2px solid #bbf7d0', flex: 1 }}>
-            <div className="value">1,250.00</div>
+            <div className="value">{(Number(displayData.total_sum) * 1.2).toFixed(2)}</div>
             <div className="label">CEX On-chain Reserves</div>
           </div>
         </div>

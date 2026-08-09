@@ -115,7 +115,7 @@ export default function AuditStep({ proofData: _proofData, onVerified }: Props) 
           <button className="primary" onClick={downloadScript} style={{ background: 'var(--color-dark)' }}>
             View Script
           </button>
-          <a href="/api/pll/download" download style={{ textDecoration: 'none' }}>
+          <a href={`${import.meta.env.PROD ? '/work/lpor/api' : '/api'}/pll/download`} download style={{ textDecoration: 'none' }}>
             <button className="primary" style={{ background: '#475569' }}>
               ↓ PLL
             </button>
