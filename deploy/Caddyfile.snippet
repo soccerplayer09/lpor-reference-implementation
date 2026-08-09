@@ -1,0 +1,17 @@
+# Add this to the existing Caddyfile on VPS under the donggookim.com block:
+#
+# donggookim.com {
+#   ... existing rules ...
+#
+#   handle_path /lpor/api/* {
+#     reverse_proxy lpor-api:8000
+#   }
+#
+#   handle_path /lpor/* {
+#     reverse_proxy lpor-frontend:80
+#   }
+#
+#   handle /lpor {
+#     redir /lpor/ permanent
+#   }
+# }

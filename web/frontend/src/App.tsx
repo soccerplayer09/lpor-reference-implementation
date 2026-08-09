@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import DemoPage from './DemoPage'
 
+const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
+
 function LandingPage() {
   return (
     <div className="container" style={{ paddingTop: 64, paddingBottom: 64 }}>
@@ -21,7 +23,7 @@ function LandingPage() {
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/demo" element={<DemoPage />} />

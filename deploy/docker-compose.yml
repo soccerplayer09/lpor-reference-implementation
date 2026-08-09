@@ -1,0 +1,21 @@
+# Add these services to the existing docker-compose.yml on VPS (~/apps/bitcoindummies/deploy/)
+# Or run standalone with: docker compose -f docker-compose.lpor.yml up -d
+
+services:
+  lpor-api:
+    image: ghcr.io/soccerplayer09/lpor-api:latest
+    restart: unless-stopped
+    networks:
+      - webnet
+
+  lpor-frontend:
+    image: ghcr.io/soccerplayer09/lpor-frontend:latest
+    restart: unless-stopped
+    depends_on:
+      - lpor-api
+    networks:
+      - webnet
+
+networks:
+  webnet:
+    external: true

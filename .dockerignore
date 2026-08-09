@@ -1,0 +1,15 @@
+node_modules
+web/frontend/node_modules
+web/frontend/dist
+.next
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+README.md
+.env*
+docs/slide_images
