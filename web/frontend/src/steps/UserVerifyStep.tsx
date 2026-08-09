@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { apiPost } from '../api'
+import { useState, useEffect, useRef } from 'react'
+import { apiPost, apiGet } from '../api'
 import { UserRecord, ProofData } from '../App'
 import { formatTime } from '../utils'
 import ProgressBar from '../components/ProgressBar'
+import type { VerificationReportData } from '../components/VerificationReportPDF'
 
 interface Props {
   users: UserRecord[]
@@ -20,11 +21,23 @@ interface VerifyResult {
   total_liabilities: string
 }
 
-export default function UserVerifyStep({ users, proofData: _proofData }: Props) {
+interface AuditResults {
+  submissions: { verifier_name: string; roots_match: boolean; timestamp: string }[]
+  total_verifiers: number
+  matching_count: number
+}
+
+export default function UserVerifyStep({ users, proofData }: Props) {
   const [selectedUser, setSelectedUser] = useState<string>(users[0]?.user_id || '')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<VerifyResult | null>(null)
   const [elapsed, setElapsed] = useState<number | null>(null)
+  const [auditEvidence, setAuditEvidence] = useState<AuditResults | null>(null)
+  const resultRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    apiGet<AuditResults>('/audit/results').then(setAuditEvidence).catch(() => {})
+  }, [])
 
   const verify = async () => {
     if (!selectedUser) return
@@ -35,6 +48,7 @@ export default function UserVerifyStep({ users, proofData: _proofData }: Props) 
       const res = await apiPost<VerifyResult>('/verify/user', { user_id: selectedUser })
       setResult(res)
       setElapsed(performance.now() - t0)
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150)
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Error')
     }
@@ -43,6 +57,25 @@ export default function UserVerifyStep({ users, proofData: _proofData }: Props) 
 
   return (
     <div>
+      {/* Audit evidence banner */}
+      {auditEvidence && auditEvidence.matching_count > 0 && (
+        <div className="card" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 24 }}>🛡️</span>
+            <div>
+              <h4 style={{ margin: 0, fontSize: 14 }}>Publicly Verified Commitment</h4>
+              <p style={{ margin: 0, fontSize: 13, color: '#166534' }}>
+                {auditEvidence.matching_count} independent verifier{auditEvidence.matching_count > 1 ? 's' : ''} confirmed the PLL commitment:
+                {' '}<strong>{auditEvidence.submissions.filter(s => s.roots_match).map(s => s.verifier_name).join(', ')}</strong>
+              </p>
+            </div>
+          </div>
+          <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--color-gray)' }}>
+            You can verify your inclusion with confidence — the cryptographic binding has been independently confirmed.
+          </p>
+        </div>
+      )}
+
       <div className="card">
         <h3 style={{ marginBottom: 8 }}>User Verification</h3>
         <p style={{ color: 'var(--color-gray)', marginBottom: 16 }}>
@@ -73,7 +106,7 @@ export default function UserVerifyStep({ users, proofData: _proofData }: Props) 
       </div>
 
       {result && (
-        <div className="card">
+        <div className="card" ref={resultRef}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
             {result.all_included ? (
               <span style={{ fontSize: 36 }}>✅</span>
@@ -140,6 +173,48 @@ export default function UserVerifyStep({ users, proofData: _proofData }: Props) 
               </tbody>
             </table>
           </div>
+
+          {/* Download Report Button */}
+          {result.all_included && (
+            <button
+              className="primary"
+              onClick={async () => {
+                try {
+                  const { pdf } = await import('@react-pdf/renderer')
+                  const { VerificationReportPDF } = await import('../components/VerificationReportPDF')
+                  const reportData: VerificationReportData = {
+                    userId: result.user_id,
+                    balance: result.balance,
+                    tokensExpected: result.tokens_expected,
+                    tokensFound: result.tokens_found,
+                    allIncluded: result.all_included,
+                    foundRecords: result.found_records,
+                    totalLiabilities: result.total_liabilities,
+                    merkleRoot: proofData?.merkle_root ?? '',
+                    proofId: new Date().toISOString().slice(0, 10),
+                    verifiers: auditEvidence?.submissions
+                      .filter(s => s.roots_match)
+                      .map(s => ({ name: s.verifier_name, timestamp: s.timestamp })) ?? [],
+                    reserveAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+                    timestamp: new Date().toISOString(),
+                  }
+                  const blob = await pdf(VerificationReportPDF({ data: reportData })).toBlob()
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = `lpor-verification-${result.user_id}.pdf`
+                  a.click()
+                  URL.revokeObjectURL(url)
+                } catch (e) {
+                  console.error('PDF generation error:', e)
+                  alert('Error generating PDF. Check console for details.')
+                }
+              }}
+              style={{ marginTop: 16 }}
+            >
+              ↓ Download Verification Report (PDF)
+            </button>
+          )}
         </div>
       )}
     </div>

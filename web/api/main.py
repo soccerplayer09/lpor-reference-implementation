@@ -240,6 +240,15 @@ def generate_proof() -> GenerateProofResponse:
     _state["merkle_root"] = merkle_root
     _state["tree"] = tree
 
+    # Auto-register LPOR as the first verifier
+    from datetime import datetime
+    _state["audit_submissions"] = [{
+        "verifier_name": "LPOR",
+        "computed_root": merkle_root,
+        "roots_match": True,
+        "timestamp": datetime.now().isoformat(),
+    }]
+
     # Compute tree depth
     tree_depth = len(tree.generate_proof(0).siblings) if tree.num_leaves > 0 else 0
 

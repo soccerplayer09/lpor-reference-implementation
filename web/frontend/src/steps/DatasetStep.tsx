@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { apiPost } from '../api'
-import { UserRecord, DatasetStats } from '../App'
+import { UserRecord, DatasetStats, StepMode } from '../App'
+import ProgressBar from '../components/ProgressBar'
 
 interface Props {
+  mode: StepMode
+  storedData?: { users: UserRecord[]; stats: DatasetStats } | null
   onComplete: (users: UserRecord[], stats: DatasetStats) => void
 }
 
@@ -16,12 +19,14 @@ const SCALE_OPTIONS = [
   { label: '10⁷ (10,000,000)', value: 10_000_000 },
 ]
 
-export default function DatasetStep({ onComplete }: Props) {
+export default function DatasetStep({ mode, storedData, onComplete }: Props) {
   const [selectedScale, setSelectedScale] = useState(100)
   const [seed, setSeed] = useState(42)
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<{ users: UserRecord[]; stats: DatasetStats } | null>(null)
   const [elapsed, setElapsed] = useState<number | null>(null)
+  const resultRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   const generate = async () => {
     setLoading(true)
@@ -34,15 +39,65 @@ export default function DatasetStep({ onComplete }: Props) {
       })
       setData(res)
       setElapsed(performance.now() - t0)
+      setTimeout(() => buttonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150)
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Error')
     }
     setLoading(false)
   }
 
-  // For large datasets, don't show the full table
-  const showTable = selectedScale <= 1000
+  // Use stored data for detail mode, or local state for active mode
+  const displayData = mode === 'detail' ? storedData : data
+  const showTable = displayData ? displayData.users.length <= 1000 : false
 
+  // Detail mode: show results only
+  if (mode === 'detail' && displayData) {
+    return (
+      <div>
+        <div className="card">
+          <h3 style={{ marginBottom: 12 }}>Dataset Statistics</h3>
+          <div className="stat-grid">
+            <div className="stat-box">
+              <div className="value">{Number(displayData.stats.count).toLocaleString()}</div>
+              <div className="label">Users</div>
+            </div>
+            <div className="stat-box">
+              <div className="value">{Number(displayData.stats.total).toFixed(2)}</div>
+              <div className="label">Total BTC</div>
+            </div>
+            <div className="stat-box">
+              <div className="value">{displayData.stats.median}</div>
+              <div className="label">Median Balance</div>
+            </div>
+            <div className="stat-box">
+              <div className="value">{displayData.stats.max}</div>
+              <div className="label">Max Balance</div>
+            </div>
+          </div>
+        </div>
+        {showTable && (
+          <div className="card">
+            <h3 style={{ marginBottom: 12 }}>User Balances</h3>
+            <div style={{ maxHeight: 300, overflow: 'auto' }}>
+              <table>
+                <thead><tr><th>User ID</th><th>Balance (BTC)</th></tr></thead>
+                <tbody>
+                  {displayData.users.map(u => (
+                    <tr key={u.user_id}>
+                      <td className="mono">{u.user_id}</td>
+                      <td>{u.balance}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Active mode: full interactive UI
   return (
     <div>
       <div className="card">
@@ -82,10 +137,11 @@ export default function DatasetStep({ onComplete }: Props) {
             ⚠️ Large dataset ({selectedScale.toLocaleString()} users). Generation and subsequent steps may take several seconds to minutes.
           </div>
         )}
+        <ProgressBar loading={loading} label="Generating synthetic users..." />
       </div>
 
       {data && (
-        <>
+        <div ref={resultRef}>
           <div className="card">
             <h3 style={{ marginBottom: 12 }}>
               Dataset Generated
@@ -120,9 +176,7 @@ export default function DatasetStep({ onComplete }: Props) {
               <h3 style={{ marginBottom: 12 }}>User Balances (Exchange Internal DB)</h3>
               <div style={{ maxHeight: 300, overflow: 'auto' }}>
                 <table>
-                  <thead>
-                    <tr><th>User ID</th><th>Balance (BTC)</th></tr>
-                  </thead>
+                  <thead><tr><th>User ID</th><th>Balance (BTC)</th></tr></thead>
                   <tbody>
                     {data.users.map(u => (
                       <tr key={u.user_id}>
@@ -139,16 +193,15 @@ export default function DatasetStep({ onComplete }: Props) {
           {!showTable && (
             <div className="card">
               <p style={{ color: 'var(--color-gray)', fontSize: 13 }}>
-                Table hidden for large datasets ({selectedScale.toLocaleString()} users). 
-                Showing first 5: {data.users.slice(0, 5).map(u => `${u.user_id} (${u.balance})`).join(', ')}…
+                Table hidden for large datasets. Showing first 5: {data.users.slice(0, 5).map(u => `${u.user_id} (${u.balance})`).join(', ')}…
               </p>
             </div>
           )}
 
-          <button className="primary" onClick={() => onComplete(data.users, data.stats)} style={{ marginTop: 8 }}>
+          <button ref={buttonRef} className="primary" onClick={() => onComplete(data.users, data.stats)} style={{ marginTop: 8 }}>
             Continue to Tokenization →
           </button>
-        </>
+        </div>
       )}
     </div>
   )

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { apiPost, apiGet } from '../api'
 import { ProofData } from '../App'
 import { formatTime } from '../utils'
@@ -6,6 +6,7 @@ import ProgressBar from '../components/ProgressBar'
 
 interface Props {
   proofData: ProofData | null
+  onVerified?: () => void
 }
 
 interface AuditorResult {
@@ -30,14 +31,14 @@ interface ScriptData {
   content: string
 }
 
-export default function AuditStep({ proofData: _proofData }: Props) {
+export default function AuditStep({ proofData: _proofData, onVerified }: Props) {
   const [auditorResult, setAuditorResult] = useState<AuditorResult | null>(null)
   const [auditResults, setAuditResults] = useState<AuditResults | null>(null)
   const [script, setScript] = useState<ScriptData | null>(null)
   const [loading, setLoading] = useState(false)
   const [elapsed, setElapsed] = useState<number | null>(null)
-  const [verifierName, setVerifierName] = useState('')
-  const [submitting, setSubmitting] = useState(false)
+  const [verifierName, setVerifierName] = useState('Transparency Labs')
+  const resultRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     loadAuditResults()
@@ -51,6 +52,10 @@ export default function AuditStep({ proofData: _proofData }: Props) {
   }
 
   const runAuditVerification = async () => {
+    if (!verifierName.trim()) {
+      alert('Please enter a verifier name')
+      return
+    }
     setLoading(true)
     setElapsed(null)
     const t0 = performance.now()
@@ -58,6 +63,16 @@ export default function AuditStep({ proofData: _proofData }: Props) {
       const res = await apiPost<AuditorResult>('/verify/auditor')
       setAuditorResult(res)
       setElapsed(performance.now() - t0)
+
+      // Auto-register the verification result
+      if (res.verification_passed) {
+        await apiPost('/audit/submit', {
+          verifier_name: verifierName.trim(),
+          computed_root: res.computed_root,
+        })
+        loadAuditResults()
+      }
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150)
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Error')
     }
@@ -73,22 +88,6 @@ export default function AuditStep({ proofData: _proofData }: Props) {
     }
   }
 
-  const submitVerification = async () => {
-    if (!verifierName || !auditorResult) return
-    setSubmitting(true)
-    try {
-      await apiPost('/audit/submit', {
-        verifier_name: verifierName,
-        computed_root: auditorResult.computed_root,
-      })
-      setVerifierName('')
-      loadAuditResults()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Error')
-    }
-    setSubmitting(false)
-  }
-
   return (
     <div>
       <div className="card">
@@ -98,16 +97,26 @@ export default function AuditStep({ proofData: _proofData }: Props) {
           and verify it matches the exchange's published commitment.
         </p>
 
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <button className="primary" onClick={runAuditVerification} disabled={loading}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'end', flexWrap: 'wrap', marginBottom: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Verifier Name</label>
+            <input
+              type="text"
+              value={verifierName}
+              onChange={e => setVerifierName(e.target.value)}
+              placeholder="Transparency Labs"
+              style={{ padding: '8px 12px', border: '1px solid var(--color-gray-light)', borderRadius: 6, minWidth: 200 }}
+            />
+          </div>
+          <button className="primary" onClick={runAuditVerification} disabled={loading || !verifierName.trim()}>
             {loading ? 'Verifying...' : 'Run Auditor Verification'}
           </button>
           <button className="primary" onClick={downloadScript} style={{ background: 'var(--color-dark)' }}>
-            View Verification Script
+            View Script
           </button>
           <a href="/api/pll/download" download style={{ textDecoration: 'none' }}>
             <button className="primary" style={{ background: '#475569' }}>
-              ↓ Download PLL
+              ↓ PLL
             </button>
           </a>
         </div>
@@ -115,7 +124,7 @@ export default function AuditStep({ proofData: _proofData }: Props) {
       </div>
 
       {auditorResult && (
-        <div className="card">
+        <div className="card" ref={resultRef}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
             {auditorResult.verification_passed ? (
               <span style={{ fontSize: 36 }}>✅</span>
@@ -132,7 +141,7 @@ export default function AuditStep({ proofData: _proofData }: Props) {
                 )}
               </h3>
               <p style={{ color: 'var(--color-gray)', fontSize: 13 }}>
-                Merkle root recomputed — server-side: {formatTime(auditorResult.verification_time_ms)}
+                Verified by <strong>{verifierName}</strong> — server-side: {formatTime(auditorResult.verification_time_ms)}
               </p>
             </div>
           </div>
@@ -151,23 +160,6 @@ export default function AuditStep({ proofData: _proofData }: Props) {
             </div>
             <div>
               <strong>Total sum:</strong> {auditorResult.total_sum} BTC
-            </div>
-          </div>
-
-          {/* Submit verification */}
-          <div style={{ marginTop: 16, padding: 16, background: 'var(--color-bg)', borderRadius: 8 }}>
-            <h4 style={{ marginBottom: 8 }}>Register Your Verification</h4>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                type="text"
-                placeholder="Your name"
-                value={verifierName}
-                onChange={e => setVerifierName(e.target.value)}
-                style={{ padding: '8px 12px', border: '1px solid var(--color-gray-light)', borderRadius: 6, flex: 1 }}
-              />
-              <button className="primary" onClick={submitVerification} disabled={submitting || !verifierName}>
-                Submit
-              </button>
             </div>
           </div>
         </div>
@@ -190,7 +182,7 @@ export default function AuditStep({ proofData: _proofData }: Props) {
 
       {auditResults && auditResults.submissions.length > 0 && (
         <div className="card">
-          <h3 style={{ marginBottom: 12 }}>Verification Consensus</h3>
+          <h3 style={{ marginBottom: 12 }}>Verification Evidence</h3>
           <div className="stat-grid">
             <div className="stat-box">
               <div className="value">{auditResults.total_verifiers}</div>
@@ -203,19 +195,20 @@ export default function AuditStep({ proofData: _proofData }: Props) {
           </div>
           <table style={{ marginTop: 12 }}>
             <thead>
-              <tr><th>Verifier</th><th>Result</th><th>Timestamp</th></tr>
+              <tr><th>#</th><th>Verifier</th><th>Result</th><th>Verified At</th></tr>
             </thead>
             <tbody>
               {auditResults.submissions.map((s, i) => (
                 <tr key={i}>
-                  <td>{s.verifier_name}</td>
+                  <td style={{ color: 'var(--color-gray)' }}>{i + 1}</td>
+                  <td><strong>{s.verifier_name}</strong></td>
                   <td>
                     {s.roots_match
                       ? <span className="badge badge-success">✓ Match</span>
                       : <span className="badge badge-danger">✗ Mismatch</span>
                     }
                   </td>
-                  <td style={{ fontSize: 11, color: 'var(--color-gray)' }}>
+                  <td style={{ fontSize: 12, color: 'var(--color-gray)', fontFamily: 'monospace' }}>
                     {new Date(s.timestamp).toLocaleString()}
                   </td>
                 </tr>
@@ -223,6 +216,12 @@ export default function AuditStep({ proofData: _proofData }: Props) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {auditorResult && auditorResult.verification_passed && onVerified && (
+        <button className="primary" onClick={onVerified} style={{ marginTop: 16 }}>
+          Continue to User Verification →
+        </button>
       )}
     </div>
   )
