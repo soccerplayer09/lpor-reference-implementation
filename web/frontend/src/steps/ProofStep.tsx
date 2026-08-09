@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { apiPost } from '../api'
-import { TokenizeData, ProofData, StepMode } from '../App'
+import { TokenizeData, ProofData, StepMode } from '../DemoPage'
 import { formatTime } from '../utils'
 import ProgressBar from '../components/ProgressBar'
 

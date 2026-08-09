@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { apiPost, apiGet } from '../api'
-import { ProofData } from '../App'
+import { ProofData } from '../DemoPage'
 import { formatTime } from '../utils'
 import ProgressBar from '../components/ProgressBar'
 
@@ -39,6 +39,7 @@ export default function AuditStep({ proofData: _proofData, onVerified }: Props) 
   const [elapsed, setElapsed] = useState<number | null>(null)
   const [verifierName, setVerifierName] = useState('Transparency Labs')
   const resultRef = useRef<HTMLDivElement>(null)
+  const continueRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     loadAuditResults()
@@ -72,7 +73,7 @@ export default function AuditStep({ proofData: _proofData, onVerified }: Props) 
         })
         loadAuditResults()
       }
-      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150)
+      setTimeout(() => continueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150)
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Error')
     }
@@ -219,7 +220,7 @@ export default function AuditStep({ proofData: _proofData, onVerified }: Props) 
       )}
 
       {auditorResult && auditorResult.verification_passed && onVerified && (
-        <button className="primary" onClick={onVerified} style={{ marginTop: 16 }}>
+        <button ref={continueRef} className="primary" onClick={onVerified} style={{ marginTop: 16 }}>
           Continue to User Verification →
         </button>
       )}

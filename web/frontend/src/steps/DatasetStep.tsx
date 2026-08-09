@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { apiPost } from '../api'
-import { UserRecord, DatasetStats, StepMode } from '../App'
+import { UserRecord, DatasetStats, StepMode } from '../DemoPage'
 import ProgressBar from '../components/ProgressBar'
 
 interface Props {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { apiPost, apiGet } from '../api'
-import { UserRecord, ProofData } from '../App'
+import { UserRecord, ProofData, UserVerifyResultData } from '../DemoPage'
 import { formatTime } from '../utils'
 import ProgressBar from '../components/ProgressBar'
 import type { VerificationReportData } from '../components/VerificationReportPDF'
@@ -8,6 +8,8 @@ import type { VerificationReportData } from '../components/VerificationReportPDF
 interface Props {
   users: UserRecord[]
   proofData: ProofData | null
+  onVerified?: (data: UserVerifyResultData) => void
+  onSummarize?: () => void
 }
 
 interface VerifyResult {
@@ -27,7 +29,7 @@ interface AuditResults {
   matching_count: number
 }
 
-export default function UserVerifyStep({ users, proofData }: Props) {
+export default function UserVerifyStep({ users, proofData, onVerified, onSummarize }: Props) {
   const [selectedUser, setSelectedUser] = useState<string>(users[0]?.user_id || '')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<VerifyResult | null>(null)
@@ -49,6 +51,15 @@ export default function UserVerifyStep({ users, proofData }: Props) {
       setResult(res)
       setElapsed(performance.now() - t0)
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150)
+      if (res.all_included && onVerified) {
+        onVerified({
+          userId: res.user_id,
+          balance: res.balance,
+          tokensExpected: res.tokens_expected,
+          tokensFound: res.tokens_found,
+          totalLiabilities: res.total_liabilities,
+        })
+      }
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Error')
     }
@@ -174,46 +185,56 @@ export default function UserVerifyStep({ users, proofData }: Props) {
             </table>
           </div>
 
-          {/* Download Report Button */}
+          {/* Action Buttons */}
           {result.all_included && (
-            <button
-              className="primary"
-              onClick={async () => {
-                try {
-                  const { pdf } = await import('@react-pdf/renderer')
-                  const { VerificationReportPDF } = await import('../components/VerificationReportPDF')
-                  const reportData: VerificationReportData = {
-                    userId: result.user_id,
-                    balance: result.balance,
-                    tokensExpected: result.tokens_expected,
-                    tokensFound: result.tokens_found,
-                    allIncluded: result.all_included,
-                    foundRecords: result.found_records,
-                    totalLiabilities: result.total_liabilities,
-                    merkleRoot: proofData?.merkle_root ?? '',
-                    proofId: new Date().toISOString().slice(0, 10),
-                    verifiers: auditEvidence?.submissions
-                      .filter(s => s.roots_match)
-                      .map(s => ({ name: s.verifier_name, timestamp: s.timestamp })) ?? [],
-                    reserveAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
-                    timestamp: new Date().toISOString(),
+            <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+              <button
+                className="primary"
+                onClick={async () => {
+                  try {
+                    const { pdf } = await import('@react-pdf/renderer')
+                    const { VerificationReportPDF } = await import('../components/VerificationReportPDF')
+                    const reportData: VerificationReportData = {
+                      userId: result.user_id,
+                      balance: result.balance,
+                      tokensExpected: result.tokens_expected,
+                      tokensFound: result.tokens_found,
+                      allIncluded: result.all_included,
+                      foundRecords: result.found_records,
+                      totalLiabilities: result.total_liabilities,
+                      merkleRoot: proofData?.merkle_root ?? '',
+                      proofId: new Date().toISOString().slice(0, 10),
+                      verifiers: auditEvidence?.submissions
+                        .filter(s => s.roots_match)
+                        .map(s => ({ name: s.verifier_name, timestamp: s.timestamp })) ?? [],
+                      reserveAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+                      timestamp: new Date().toISOString(),
+                    }
+                    const blob = await pdf(VerificationReportPDF({ data: reportData })).toBlob()
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = `lpor-verification-${result.user_id}.pdf`
+                    a.click()
+                    URL.revokeObjectURL(url)
+                  } catch (e) {
+                    console.error('PDF generation error:', e)
+                    alert('Error generating PDF. Check console for details.')
                   }
-                  const blob = await pdf(VerificationReportPDF({ data: reportData })).toBlob()
-                  const url = URL.createObjectURL(blob)
-                  const a = document.createElement('a')
-                  a.href = url
-                  a.download = `lpor-verification-${result.user_id}.pdf`
-                  a.click()
-                  URL.revokeObjectURL(url)
-                } catch (e) {
-                  console.error('PDF generation error:', e)
-                  alert('Error generating PDF. Check console for details.')
-                }
-              }}
-              style={{ marginTop: 16 }}
-            >
-              ↓ Download Verification Report (PDF)
-            </button>
+                }}
+              >
+                ↓ Download Verification Report (PDF)
+              </button>
+              {onSummarize && (
+                <button
+                  className="primary"
+                  onClick={onSummarize}
+                  style={{ background: 'var(--color-dark)' }}
+                >
+                  📋 Summarize
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
