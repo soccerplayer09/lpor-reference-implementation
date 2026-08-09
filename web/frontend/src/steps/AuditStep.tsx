@@ -146,16 +146,16 @@ export default function AuditStep({ proofData: _proofData, onVerified }: Props) 
             </div>
           </div>
 
-          <div style={{ fontSize: 13 }}>
-            <div style={{ marginBottom: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13 }}>
+            <div>
               <strong>Published root:</strong>{' '}
-              <code className="mono">{auditorResult.published_root.slice(0, 32)}…</code>
+              <code className="mono" style={{ fontSize: 11 }}>{auditorResult.published_root.slice(0, 32)}…</code>
             </div>
-            <div style={{ marginBottom: 8 }}>
+            <div>
               <strong>Computed root:</strong>{' '}
-              <code className="mono">{auditorResult.computed_root.slice(0, 32)}…</code>
+              <code className="mono" style={{ fontSize: 11 }}>{auditorResult.computed_root.slice(0, 32)}…</code>
             </div>
-            <div style={{ marginBottom: 8 }}>
+            <div>
               <strong>Records verified:</strong> {auditorResult.record_count.toLocaleString()}
             </div>
             <div>

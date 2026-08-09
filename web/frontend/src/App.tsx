@@ -215,9 +215,6 @@ function App() {
               ]} />
             ) : (
               <div>
-                <div style={{ marginBottom: 16, padding: 10, background: '#f0f9ff', borderRadius: 8, fontSize: 13, color: 'var(--color-gray)' }}>
-                  🏛️ Auditor layer: independent parties recompute the Merkle root from the PLL to verify the exchange's commitment is valid.
-                </div>
                 <AuditStep proofData={proofData} onVerified={currentStep === 4 ? completeStep4 : undefined} />
               </div>
             )}
@@ -233,9 +230,6 @@ function App() {
             subtitle="User layer — inclusion check on verified PLL"
             completed={false} active={true}
           >
-            <div style={{ marginBottom: 16, padding: 10, background: '#f0fdf4', borderRadius: 8, fontSize: 13, color: '#166534' }}>
-              ✅ The PLL has been publicly verified by independent auditors. Users can now check their token inclusion with confidence — no cryptographic operations needed.
-            </div>
             <UserVerifyStep users={users} proofData={proofData} />
           </StepSection>
         </div>

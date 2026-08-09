@@ -72,16 +72,31 @@ export default function ProofStep({ mode, tokenizeData: _tokenizeData, storedDat
 
       {/* Solvency comparison: Liabilities vs Reserves */}
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Solvency Snapshot</h3>
-        <p style={{ fontSize: 12, color: 'var(--color-gray)', marginBottom: 12 }}>
-          Snapshot taken: {new Date().toISOString().slice(0, 19).replace('T', ' ')} UTC
-        </p>
-        <div className="stat-grid">
-          <div className="stat-box" style={{ border: '2px solid #fecaca' }}>
+        <h3 style={{ marginBottom: 12 }}>Published Commitment</h3>
+        <div style={{ padding: 16, background: 'var(--color-dark)', borderRadius: 8, color: 'white' }}>
+          <div style={{ fontSize: 11, color: 'var(--color-gray-light)', textTransform: 'uppercase', marginBottom: 4 }}>
+            Merkle Root (R)
+          </div>
+          <div className="mono" style={{ fontSize: 14, wordBreak: 'break-all' }}>
+            {displayData.merkle_root}
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 12 }}>
+          <h3 style={{ margin: 0 }}>Solvency Snapshot</h3>
+          <span style={{ fontSize: 12, color: 'var(--color-gray)' }}>
+            {new Date().toISOString().slice(0, 19).replace('T', ' ')} UTC
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+          <div className="stat-box" style={{ border: '2px solid #fecaca', flex: 1 }}>
             <div className="value">{displayData.total_sum}</div>
             <div className="label">Total Liabilities (PLL)</div>
           </div>
-          <div className="stat-box" style={{ border: '2px solid #bbf7d0' }}>
+          <div style={{ fontSize: 28, color: 'var(--color-success)', fontWeight: 700 }}>≤</div>
+          <div className="stat-box" style={{ border: '2px solid #bbf7d0', flex: 1 }}>
             <div className="value">1,250.00</div>
             <div className="label">CEX On-chain Reserves</div>
           </div>
@@ -99,32 +114,6 @@ export default function ProofStep({ mode, tokenizeData: _tokenizeData, storedDat
             >
               View on mempool.space ↗
             </a>
-          </div>
-        </div>
-        <div style={{ marginTop: 12, padding: 10, background: '#f0fdf4', borderRadius: 6, fontSize: 12, color: '#166534' }}>
-          ✅ Reserves (1,250.00 BTC) ≥ Liabilities ({displayData.total_sum} BTC) — Solvent
-        </div>
-      </div>
-
-      <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Published Commitment</h3>
-        <div style={{ padding: 16, background: 'var(--color-dark)', borderRadius: 8, color: 'white' }}>
-          <div style={{ fontSize: 11, color: 'var(--color-gray-light)', textTransform: 'uppercase', marginBottom: 4 }}>
-            Merkle Root (R)
-          </div>
-          <div className="mono" style={{ fontSize: 14, wordBreak: 'break-all' }}>
-            {displayData.merkle_root}
-          </div>
-        </div>
-
-        <div style={{ marginTop: 16, padding: 16, background: 'var(--color-bg)', borderRadius: 8 }}>
-          <h4 style={{ marginBottom: 8, fontSize: 13 }}>Architecture</h4>
-          <div style={{ fontSize: 13, lineHeight: 2 }}>
-            <div><span className="badge badge-info">Auditor Layer</span> Verify Merkle leaves → Verify R<sub>root</sub> → Cryptographic binding</div>
-            <div style={{ borderLeft: '2px solid var(--color-primary)', paddingLeft: 12, margin: '8px 0' }}>
-              <strong>Standard Merkle PoR</strong> — LPOR reuses the same construction above the PLL row
-            </div>
-            <div><span className="badge badge-success">User Layer</span> Verify inclusion in PLL → Verify total sum → Human-readable</div>
           </div>
         </div>
       </div>

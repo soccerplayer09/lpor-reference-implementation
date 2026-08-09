@@ -71,7 +71,7 @@ export default function UserVerifyStep({ users, proofData }: Props) {
             </div>
           </div>
           <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--color-gray)' }}>
-            You can verify your inclusion with confidence — the cryptographic binding has been independently confirmed.
+            Verified at: {auditEvidence.submissions.filter(s => s.roots_match).map(s => new Date(s.timestamp).toLocaleString()).join(', ')}
           </p>
         </div>
       )}
