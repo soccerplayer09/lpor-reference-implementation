@@ -137,6 +137,7 @@ function DemoPage() {
     <div className="container" style={{ paddingTop: 32, paddingBottom: 64 }}>
       <header style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
+          <a href="./" style={{ textDecoration: 'none', color: 'var(--color-gray)', fontSize: 12, display: 'inline-block', marginBottom: 8 }}>← Back to LPOR</a>
           <h1 style={{ fontSize: 28, fontWeight: 700 }}>
             LPOR <span style={{ color: 'var(--color-primary)', fontWeight: 400 }}>Interactive Demo</span>
           </h1>
