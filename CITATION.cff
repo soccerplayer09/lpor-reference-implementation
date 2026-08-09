@@ -3,14 +3,34 @@ title: "LPOR: A Layered Proof of Reserves Framework for Usable and Publicly Audi
 message: "If you use this software, please cite the associated paper."
 type: software
 authors:
-  - name: "LPOR Research Team"
-    affiliation: "Georgia Institute of Technology — OMSCS"
+  - family-names: Kim
+    given-names: Donggoo
+    affiliation: "Georgia Institute of Technology"
+  - family-names: Upadhayaya
+    given-names: Rajesh
+    affiliation: "University of New Mexico"
+  - family-names: Bator
+    given-names: Milosz
+    affiliation: "Georgia Institute of Technology"
+  - family-names: Le
+    given-names: Tao
+    affiliation: "Georgia Institute of Technology"
 preferred-citation:
   type: conference-paper
   title: "LPOR: A Layered Proof of Reserves Framework for Usable and Publicly Auditable Solvency Verification"
   authors:
-    - name: "LPOR Research Team"
-      affiliation: "Georgia Institute of Technology — OMSCS"
+    - family-names: Kim
+      given-names: Donggoo
+      affiliation: "Georgia Institute of Technology"
+    - family-names: Upadhayaya
+      given-names: Rajesh
+      affiliation: "University of New Mexico"
+    - family-names: Bator
+      given-names: Milosz
+      affiliation: "Georgia Institute of Technology"
+    - family-names: Le
+      given-names: Tao
+      affiliation: "Georgia Institute of Technology"
   collection-title: "2026 IEEE International Conference on Blockchain and Cryptocurrency (ICBC)"
   conference:
     name: "IEEE ICBC 2026"

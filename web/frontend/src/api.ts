@@ -1,6 +1,6 @@
-// In production (behind /lpor/), API is at /lpor/api/
+// In production (behind /work/lpor/), API is at /work/lpor/api/
 // In development (vite proxy), API is at /api/
-const API_BASE = import.meta.env.PROD ? '/lpor/api' : '/api';
+const API_BASE = import.meta.env.PROD ? '/work/lpor/api' : '/api';
 
 export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {

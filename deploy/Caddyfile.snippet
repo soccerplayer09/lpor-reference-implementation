@@ -3,15 +3,15 @@
 # donggookim.com {
 #   ... existing rules ...
 #
-#   handle_path /lpor/api/* {
+#   handle_path /work/lpor/api/* {
 #     reverse_proxy lpor-api:8000
 #   }
 #
-#   handle_path /lpor/* {
+#   handle_path /work/lpor/* {
 #     reverse_proxy lpor-frontend:80
 #   }
 #
-#   handle /lpor {
-#     redir /lpor/ permanent
+#   handle /work/lpor {
+#     redir /work/lpor/ permanent
 #   }
 # }

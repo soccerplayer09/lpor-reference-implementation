@@ -122,10 +122,17 @@
 }
 
 .la-paper-preview {
+  display: block;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   background: white;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.la-paper-preview:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 8px 30px rgba(37, 99, 235, 0.2);
 }
 
 .la-paper-preview img {

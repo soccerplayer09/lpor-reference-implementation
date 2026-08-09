@@ -5,16 +5,13 @@ WORKDIR /app
 # Install uv for fast dependency resolution
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Copy dependency specification first for layer caching
-COPY pyproject.toml ./
-
-# Install dependencies
-RUN uv pip install --system -e .
-
-# Copy source code
+# Copy everything needed for install
+COPY pyproject.toml README.md ./
 COPY lpor/ ./lpor/
 COPY web/ ./web/
-COPY examples/ ./examples/
+
+# Install dependencies
+RUN uv pip install --system .
 
 EXPOSE 8000
 

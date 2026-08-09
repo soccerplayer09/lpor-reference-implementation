@@ -113,7 +113,7 @@ If you use this work, please cite:
 ```bibtex
 @inproceedings{lpor2026,
   title     = {LPOR: A Layered Proof of Reserves Framework for Usable and Publicly Auditable Solvency Verification},
-  author    = {LPOR Research Team},
+  author    = {Donggoo Kim and Rajesh Upadhayaya and Milosz Bator and Tao Le},
   booktitle = {2026 IEEE International Conference on Blockchain and Cryptocurrency (ICBC)},
   year      = {2026},
   publisher = {IEEE},
